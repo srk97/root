@@ -29,6 +29,7 @@
 #include "TFormula.h"
 #include "TString.h"
 #include "TMath.h"
+#include "TMVA/StringUtils.h"
 
 #include "TMVA/Tools.h"
 #include "TMVA/Configurable.h"
@@ -56,97 +57,6 @@ using TMVA::DNN::EOutputFunction;
 
 namespace TMVA {
 
-////////////////////////////////////////////////////////////////////////////////
-TString fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key)
-{
-   key.ToUpper();
-   std::map<TString, TString>::const_iterator it = keyValueMap.find(key);
-   if (it == keyValueMap.end()) {
-      return TString("");
-   }
-   return it->second;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-T fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key, T defaultValue);
-
-////////////////////////////////////////////////////////////////////////////////
-template <>
-int fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key, int defaultValue)
-{
-   TString value(fetchValueAE(keyValueMap, key));
-   if (value == "") {
-      return defaultValue;
-   }
-   return value.Atoi();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-template <>
-double fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key, double defaultValue)
-{
-   TString value(fetchValueAE(keyValueMap, key));
-   if (value == "") {
-      return defaultValue;
-   }
-   return value.Atof();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-template <>
-TString fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key, TString defaultValue)
-{
-   TString value(fetchValueAE(keyValueMap, key));
-   if (value == "") {
-      return defaultValue;
-   }
-   return value;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-template <>
-bool fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key, bool defaultValue)
-{
-   TString value(fetchValueAE(keyValueMap, key));
-   if (value == "") {
-      return defaultValue;
-   }
-
-   value.ToUpper();
-   if (value == "TRUE" || value == "T" || value == "1") {
-      return true;
-   }
-
-   return false;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-template <>
-std::vector<double> fetchValueAE(const std::map<TString, TString> &keyValueMap, TString key,
-                                  std::vector<double> defaultValue)
-{
-   TString parseString(fetchValueAE(keyValueMap, key));
-   if (parseString == "") {
-      return defaultValue;
-   }
-
-   parseString.ToUpper();
-   std::vector<double> values;
-
-   const TString tokenDelim("+");
-   TObjArray *tokenStrings = parseString.Tokenize(tokenDelim);
-   TIter nextToken(tokenStrings);
-   TObjString *tokenString = (TObjString *)nextToken();
-   for (; tokenString != NULL; tokenString = (TObjString *)nextToken()) {
-      std::stringstream sstr;
-      double currentValue;
-      sstr << tokenString->GetString().Data();
-      sstr >> currentValue;
-      values.push_back(currentValue);
-   }
-   return values;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 void MethodAE::DeclareOptions()
@@ -309,23 +219,23 @@ void MethodAE::ProcessOptions()
    for (auto &block : strategyKeyValues) {
       TTrainingAESettings settings;
 
-      settings.convergenceSteps = fetchValueAE(block, "ConvergenceSteps", 100);
-      settings.batchSize = fetchValueAE(block, "BatchSize", 30);
-      settings.maxEpochs = fetchValueAE(block, "MaxEpochs", 2000);
-      settings.testInterval = fetchValueAE(block, "TestRepetitions", 7);
-      settings.weightDecay = fetchValueAE(block, "WeightDecay", 0.0);
-      settings.learningRate = fetchValueAE(block, "LearningRate", 1e-5);
-      settings.momentum = fetchValueAE(block, "Momentum", 0.3);
-      settings.dropoutProbabilities = fetchValueAE(block, "DropConfig", std::vector<Double_t>());
+      settings.convergenceSteps = fetchValueUtils(block, "ConvergenceSteps", 100);
+      settings.batchSize = fetchValueUtils(block, "BatchSize", 30);
+      settings.maxEpochs = fetchValueUtils(block, "MaxEpochs", 2000);
+      settings.testInterval = fetchValueUtils(block, "TestRepetitions", 7);
+      settings.weightDecay = fetchValueUtils(block, "WeightDecay", 0.0);
+      settings.learningRate = fetchValueUtils(block, "LearningRate", 1e-5);
+      settings.momentum = fetchValueUtils(block, "Momentum", 0.3);
+      settings.dropoutProbabilities = fetchValueUtils(block, "DropConfig", std::vector<Double_t>());
 
-      TString regularization = fetchValueAE(block, "Regularization", TString("NONE"));
+      TString regularization = fetchValueUtils(block, "Regularization", TString("NONE"));
       if (regularization == "L1") {
          settings.regularization = DNN::ERegularization::kL1;
       } else if (regularization == "L2") {
          settings.regularization = DNN::ERegularization::kL2;
       }
 
-      TString strMultithreading = fetchValueAE(block, "Multithreading", TString("True"));
+      TString strMultithreading = fetchValueUtils(block, "Multithreading", TString("True"));
 
       if (strMultithreading.BeginsWith("T")) {
          settings.multithreading = true;
